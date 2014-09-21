@@ -1,0 +1,21 @@
+#!/bin/bash -x
+
+[ -f $1 ] || (
+	echo "Usage: apkrun <apk-file>"
+) && (
+	R=`md5sum $1 | awk '{print $1}'`
+
+	[ -d "/tmp/apktmp/$R" ] || (
+		mkdir -p /tmp/apktmp/$R
+		cp $1 /tmp/apktmp/$R/
+		pushd /tmp/apktmp/$R 
+		chromeos-apk --archon $1
+		popd
+	)
+	chromium --profile-directory="~/.config/chromium_archon" \
+	   --load-and-launch-app=`ls -d /tmp/apktmp/$R/*/` \
+	   --silent-launch
+)
+
+
+

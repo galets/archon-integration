@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=APK Loader
+Exec=apkrun %f
+MimeType=application/vnd.android.package-archive
+Icon=android
+NoDisplay=true
