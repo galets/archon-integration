@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 [ -f $1 ] || (
 	echo "Usage: apkrun <apk-file>"
