@@ -13,6 +13,7 @@
 		popd
 	)
 	chromium --profile-directory="~/.config/chromium_archon" \
+	   --load-extension=/usr/share/archon \
 	   --load-and-launch-app=`ls -d /tmp/apktmp/$R/*/` \
 	   --silent-launch
 )
