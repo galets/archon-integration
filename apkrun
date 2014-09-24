@@ -23,7 +23,7 @@
 		mkdir -p /tmp/apktmp/$R
 		cp $1 /tmp/apktmp/$R/
 		pushd /tmp/apktmp/$R 
-		/usr/lib/node_modules/chromeos-apk/chromeos-apk --archon $1
+		chromeos-apk --archon $1
 		popd
 	)
 
