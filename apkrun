@@ -3,6 +3,20 @@
 [ -f $1 ] || (
 	echo "Usage: apkrun <apk-file>"
 ) && (
+
+    if [ -x /opt/google/chrome-unstable/google-chrome ];then
+        RUN="/opt/google/chrome-unstable/google-chrome"
+    elif [ -x /opt/google/chrome-beta/google-chrome ];then
+        RUN="/opt/google/chrome-beta/google-chrome"
+    elif [ -x  /opt/google/chrome/google-chrome ];then
+        RUN="/opt/google/chrome/google-chrome"
+    elif `command -v chromium`;then
+        RUN="chromium"
+    else
+        echo "No google-chrome or chromium found!"
+        exit 1
+    fi
+
 	R=`md5sum $1 | awk '{print $1}'`
 
 	[ -d "/tmp/apktmp/$R" ] || (
@@ -12,10 +26,11 @@
 		chromeos-apk --archon $1
 		popd
 	)
-	chromium --profile-directory="~/.config/chromium_archon" \
+
+	$RUN --profile-directory="~/.config/archon" \
 	   --load-and-launch-app=/usr/share/archon \
-	   --silent-launch
-	chromium --profile-directory="~/.config/chromium_archon" \
+	   --silent-launch &
+	$RUN --profile-directory="~/.config/archon" \
 	   --load-and-launch-app=`ls -d /tmp/apktmp/$R/*/` \
 	   --silent-launch
 )
