@@ -1,37 +1,51 @@
 #!/bin/bash
 
-[ -f $1 ] || (
-	echo "Usage: apkrun <apk-file>"
-) && (
+[[ ! -f $1 ]] && echo "Usage: apkrun <apk-file>" && exit 1
+[[ -z $2 ]] && NAME="Android App" || NAME="$2"
 
-    if [ -x /opt/google/chrome-unstable/google-chrome ];then
-        RUN="/opt/google/chrome-unstable/google-chrome"
-    elif [ -x /opt/google/chrome-beta/google-chrome ];then
-        RUN="/opt/google/chrome-beta/google-chrome"
-    elif [ -x  /opt/google/chrome/google-chrome ];then
-        RUN="/opt/google/chrome/google-chrome"
-    elif `command -v chromium`;then
-        RUN="chromium"
-    else
-        echo "No google-chrome or chromium found!"
-        exit 1
-    fi
+if [ -x /opt/google/chrome-unstable/google-chrome ];then
+    RUN="/opt/google/chrome-unstable/google-chrome"
+elif [ -x /opt/google/chrome-beta/google-chrome ];then
+    RUN="/opt/google/chrome-beta/google-chrome"
+elif [ -x  /opt/google/chrome/google-chrome ];then
+    RUN="/opt/google/chrome/google-chrome"
+elif `command -v chromium`;then
+    RUN="chromium"
+else
+    echo "No google-chrome or chromium found!"
+    exit 1
+fi
 
-	R=`md5sum $1 | awk '{print $1}'`
+[[ -z "$ARCHON_TMPDIR" ]] && ARCHON_TMPDIR='/tmp/apktmp'
 
-	[ -d "/tmp/apktmp/$R" ] || (
-		mkdir -p /tmp/apktmp/$R
-		cp $1 /tmp/apktmp/$R/
-		pushd /tmp/apktmp/$R 
-		chromeos-apk --archon $1
-		popd
-	)
+SUM=$(md5sum $1 | awk '{print $1}')
+if [ ! -d "${ARCHON_TMPDIR}/${SUM}" ];then
+	install -d "${ARCHON_TMPDIR}/${SUM}"
+	ln -s $(readlink -f "$1") "${ARCHON_TMPDIR}/${SUM}/${1}"
+	pushd "${ARCHON_TMPDIR}/${SUM}"  >/dev/null 2>&1
 
-	$RUN --profile-directory="~/.config/archon" \
-	   --load-and-launch-app=/usr/share/archon \
-	   --silent-launch &
-	$RUN --profile-directory="~/.config/archon" \
-	   --load-and-launch-app=`ls -d /tmp/apktmp/$R/*/` \
-	   --silent-launch
-)
+	/usr/lib/node_modules/chromeos-apk/chromeos-apk --archon --tablet --scale --name "$NAME" $1 > chromeos-apk.log
 
+    	# Fix 'There is no "message" element for key extName' Error
+    	#if [[ $(grep -r appNotSupported) ]]; then
+        #APKDIR=$(ls -1 --group-directories-first | head -n 1)
+        #EXTNAME=$(cat ${APKDIR}/manifest.json  | grep '"name":' | head -n 1 | sed 's|[^"]*"name"[^"]*"||;s|".*||')
+        #for msgfile in $(find ${APKDIR}/_locales -type f -name 'messages.json'); do
+        #    echo -e '{\n  "extName": {\n    "description": "'$EXTNAME'",\n    "message": ""\n  }\n}' > "$msgfile"
+        #done
+    	#fi
+    	#popd >/dev/null 2>&1
+fi
+
+
+APPDIR=$(ls -1 -d --group-directories-first "${ARCHON_TMPDIR}/${SUM}"/* | head -n 1 | sed 's|^.*/||')
+[[ ! -d "${ARCHON_TMPDIR}/${SUM}/${APPDIR}" ]] && echo "Error: no app directory in ${ARCHON_TMPDIR}/${SUM}, delete and run again" && exit 1
+
+EXE="${RUN} --user-data-dir=${HOME}/.config/archon --profile-directory=$APPDIR --silent-launch"
+$EXE --load-and-launch-app=/usr/share/archon/ > /dev/null 2>&1 &
+sleep 1
+$EXE --load-and-launch-app="${ARCHON_TMPDIR}/${SUM}/${APPDIR}" > "${ARCHON_TMPDIR}/${SUM}/run.log" &
+sleep 1
+
+# Cleanup the non-functional XDG desktop file created by Chromium
+rm -f ${HOME}/.local/share/applications/chrome-*-${APPDIR}.desktop
